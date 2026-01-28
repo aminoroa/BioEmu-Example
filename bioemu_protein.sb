@@ -1,0 +1,35 @@
+#!/bin/bash --login
+
+#SBATCH --job-name=bioemu
+#SBATCH --time=4:00:00
+#SBATCH --gres=gpu:1
+#SBATCH -C intel21
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=64G
+
+# 1. Define Base Directories
+INPUT_DIR="/mnt/home/aminoroa/bioemu_input"
+BASE_OUTPUT_DIR="/mnt/home/aminoroa/bioemu_output"
+# Adjusted to include the 'config' subfolder
+CONFIG_DIR="/mnt/home/aminoroa/.local/lib/python3.11/site-packages/bioemu/config"
+
+# 2. Loop through every .fasta file
+for FASTA_FILE in "$INPUT_DIR"/*.fasta; do
+    
+    FILENAME=$(basename "$FASTA_FILE")
+    PROTEIN_NAME="${FILENAME%.*}"
+    PROTEIN_OUTPUT="$BASE_OUTPUT_DIR/$PROTEIN_NAME"
+    
+    # Create the directory if it doesn't exist
+    mkdir -p "$PROTEIN_OUTPUT"
+
+    echo "Starting $PROTEIN_NAME..."
+
+    python -m bioemu.sample \
+        --sequence "$FASTA_FILE" \
+        --num_samples 100 \
+        --output_dir "$PROTEIN_OUTPUT" \
+        --steering_config "$CONFIG_DIR/steering/physical_steering.yaml" \
+        --denoiser_config "$CONFIG_DIR/denoiser/stochastic_dpm.yaml"
+
+done
